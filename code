@@ -1,0 +1,41 @@
+function sendWelcomeEmails() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Onboarding"); // Adjust the sheet name as necessary
+  const rows = sheet.getDataRange().getValues();
+  const today = new Date();
+  
+  rows.forEach((row, index) => {
+    // Assuming the structure is Name, Email, Start Date, Email Sent (Yes/No), Docs Shared (Yes/No)
+    const [name, email, startDate, emailSent, docsShared] = row;
+    const start = new Date(startDate);
+    if (!emailSent && start - today <= 7*24*60*60*1000) { // Check if within 7 days and email not yet sent
+      // Send the welcome email
+      MailApp.sendEmail({
+        to: email,
+        subject: "Welcome to Our Team!",
+        htmlBody: "Dear " + name + ",<br><br>Welcome to our team! We're excited to have you join us. Please find attached your onboarding documents.<br><br>Best,<br>Your Team"
+      });
+      
+      // Update the sheet to indicate the email has been sent
+      sheet.getRange(index + 1, 4).setValue("Yes"); // Adjust the column index as needed
+    }
+    
+    if (!docsShared && start - today <= 7*24*60*60*1000) { // Check if within 7 days and docs not yet shared
+      // Share the onboarding documents folder
+      const folderId = "YOUR_FOLDER_ID_HERE"; // Replace with your folder's ID
+      const folder = DriveApp.getFolderById(folderId);
+      folder.addEditor(email);
+      
+      // Update the sheet to indicate the docs have been shared
+      sheet.getRange(index + 1, 5).setValue("Yes"); // Adjust the column index as needed
+    }
+  });
+}
+
+function setUpTriggers() {
+  // Run every day at 9 AM
+  ScriptApp.newTrigger('sendWelcomeEmails')
+    .timeBased()
+    .everyDays(1)
+    .atHour(9)
+    .create();
+}
